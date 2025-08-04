@@ -1,0 +1,23 @@
+# Standard 8 inch floppy
+diskdef ibm-3740
+  seclen 128
+  tracks 77
+  sectrk 26
+  blocksize 1024
+  maxdir 64
+  skew 6
+  boottrk 2
+  os p2dos
+end
+
+# z80pack bios 4MB hard drive layout
+diskdef z80pack-hd
+  seclen 128
+  tracks 255
+  sectrk 128
+  blocksize 2048
+  maxdir 1024
+  skew 0
+  boottrk 0
+  os 2.2
+end
