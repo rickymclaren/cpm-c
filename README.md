@@ -1,4 +1,4 @@
-# My C Project
+# CPM-C
 
 ## Overview
 This project is an implementation of a CPM machine.
