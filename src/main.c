@@ -120,8 +120,20 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
 {
   switch (port)
   {
+  case 0: // Console input status - not implemented
+    break;
+
   case 1:
     printf("%c", val);
+    break;
+
+  case 2: // Printer status - not implemented
+    break;
+
+  case 3: // Printer data - not implemented
+    break;
+
+  case 5: // AUX data - not implemented
     break;
 
   case 0x0a:
@@ -144,49 +156,63 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
       sectors_per_track = 128;
     }
 
+    char *image = diskImage(fdc_drive);
+    FILE *f = fopen(image, "rb");
+    if (f == NULL)
+    {
+      fprintf(stderr, "error: can't open disk image '%s'.\n", image);
+      exit(1);
+    }
+
+    u_int16_t dma = (fdc_dma_high << 8) | fdc_dma_low;
+    u_int16_t sector = fdc_track * sectors_per_track + fdc_sector - 1;
+    u_int16_t offset = sector * 128;
+    uint8_t *sector_data = &memory[dma];
+
+    fseek(f, offset, SEEK_SET);
+
     switch (val)
     {
 
     case 0: // Disk Read
-    image:
-      = diskImage(m.fdc_drive)
-          file,
-          err : = os.OpenFile(image, os.O_RDONLY, 0644) if err != nil{
-                                                                      panic(err)} defer file.Close()
+      size_t num_bytes = fread(sector_data, 128, 1, f);
+      break;
 
-                                                                      dma : = (int(m.fdc_dma_hi) << 8) | int(m.fdc_dma_low) sector : = m.fdc_track *sectors_per_track + m.fdc_sector - 1 offset : = int(sector) * 128 sector_data : = m.Cpu.Memory [dma:dma + 128]
-
-                                                                                                                                                                                                                                      file.Seek(int64(offset), io.SeekStart) num_bytes,
-              err : = file.Read(sector_data) if err != nil
+      if (num_bytes != 128)
       {
-        panic(err)
+        printf("Bytes read is %d instead of 128\n", num_bytes);
+        exit(1);
       }
-      if num_bytes
-        != 128
-        {
-          panic(fmt.Sprintf("Bytes read is %d instead of 128\n", num_bytes))
-        }
       break;
 
     case 1: // Disk Write
-    image:
-      = diskImage(m.fdc_drive)
-          file,
-          err : = os.OpenFile(image, os.O_WRONLY, 0644) if err != nil{
-                                                                      panic(err)}
+      size_t num_bytes = fwrite(sector_data, 128, 1, f);
+      if (num_bytes != 128)
+      {
+        printf("Bytes written is %d instead of 128\n", num_bytes);
+        exit(1);
+      }
 
-                  dma : = (int(m.fdc_dma_hi) << 8) | int(m.fdc_dma_low) sector : = m.fdc_track *sectors_per_track + m.fdc_sector - 1 offset : = int(sector) * 128 sector_data : = m.Cpu.Memory [dma:dma + 128]
-
-                                                                                                                                                                                  file.Seek(int64(offset), io.SeekStart) file.Write(sector_data)
-
-                                                                                                                                                                                      default : fmt.Printf("FDC Drive:%d Track:%d Sector:%02d Command:%02x \n", m.fdc_drive, m.fdc_track, m.fdc_sector, m.fdc_command)
+      break;
     }
-  case 0x0e:
-  m.fdc_status = value case 0x0f:
-  m.fdc_dma_low = value case 0x10:
-    m.fdc_dma_hi = value
 
-        default : printf("OUT: port=0x%02X, value=0x%02X\n", port, val);
+    fclose(f);
+    break;
+
+  case 0x0e:
+    fdc_status = val;
+    break;
+
+  case 0x0f:
+    fdc_dma_low = val;
+    break;
+
+  case 0x10:
+    fdc_dma_high = val;
+    break;
+
+  default:
+    printf("OUT: port=0x%02X, value=0x%02X\n", port, val);
     break;
   }
 }
