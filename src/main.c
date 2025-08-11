@@ -158,14 +158,11 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
 
   case 0x0d:
     fdc_command = val;
-    int sectors_per_track = 26;
-    if (fdc_drive > 3)
-    {
-      sectors_per_track = 128;
-    }
+    int sectors_per_track = fdc_drive > 3 ? 128 : 26;
 
     char *image = diskImage(fdc_drive);
-    FILE *f = fopen(image, "rb");
+    char *mode = val == 0 ? "rb" : "wb";
+    FILE *f = fopen(image, mode);
     if (f == NULL)
     {
       fprintf(stderr, "error: can't open disk image '%s'.\n", image);
@@ -180,31 +177,13 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
 
     fseek(f, offset, SEEK_SET);
 
-    switch (val)
+    num_bytes = val == 0 ? fread(sector_data, 1, 128, f) : fwrite(sector_data, 1, 128, f);
+
+    if (num_bytes != 128)
     {
-
-    case 0: // Disk Read
-      num_bytes = fread(sector_data, 128, 1, f);
-      break;
-
-      if (num_bytes != 128)
-      {
-        printf("Bytes read is %d instead of 128\n", num_bytes);
-        exit(1);
-      }
-      break;
-
-    case 1: // Disk Write
-      num_bytes = fwrite(sector_data, 128, 1, f);
-      if (num_bytes != 128)
-      {
-        printf("Bytes written is %d instead of 128\n", num_bytes);
-        exit(1);
-      }
-
-      break;
+      printf("Bytes writtern or read is %d instead of 128\n", num_bytes);
+      exit(1);
     }
-
     fclose(f);
     break;
 
