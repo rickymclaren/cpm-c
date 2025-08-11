@@ -177,13 +177,25 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
 
     fseek(f, offset, SEEK_SET);
 
-    num_bytes = val == 0 ? fread(sector_data, 1, 128, f) : fwrite(sector_data, 1, 128, f);
-
-    if (num_bytes != 128)
+    if (val == 0) // Read command
     {
-      printf("Bytes writtern or read is %d instead of 128\n", num_bytes);
-      exit(1);
+      num_bytes = fread(sector_data, 1, 128, f);
+      if (num_bytes != 128)
+      {
+        printf("Bytes read is %zu instead of 128\n", num_bytes);
+        exit(1);
+      }
     }
+    else if (val == 1) // Write command
+    {
+      num_bytes = fwrite(sector_data, 1, 128, f);
+      if (num_bytes != 128)
+      {
+        printf("Bytes written is %zu instead of 128\n", num_bytes);
+        exit(1);
+      }
+    }
+
     fclose(f);
     break;
 
