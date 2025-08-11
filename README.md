@@ -1,23 +1,10 @@
 # My C Project
 
 ## Overview
-This project is a simple C application that demonstrates the structure and organization of a C program. It includes a main source file, a header file for function declarations, and a Makefile for building the project.
+This project is an implementation of a CPM machine.
 
-## Project Structure
-```
-my-c-project
-├── src
-│   └── main.c
-├── include
-│   └── main.h
-├── Makefile
-└── README.md
-```
-
-## Files Description
-- **src/main.c**: The entry point of the application containing the `main` function.
-- **include/main.h**: Header file with function declarations and macro definitions.
-- **Makefile**: Automates the build process for compiling the source code.
+It uses <https://github.com/superzazu/z80.git> for a Z80 emulator. 
+Get this project and make it, then copy z80.h and z80.o into the src directory.
 
 ## Build Instructions
 To build the project, navigate to the project directory and run the following command:
@@ -32,7 +19,7 @@ This will compile the source code and generate the executable.
 After building the project, you can run the application with the following command:
 
 ```
-./my-c-project
+./cpm-c
 ```
 
 ## License
