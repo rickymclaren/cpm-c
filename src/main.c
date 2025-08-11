@@ -18,6 +18,14 @@ static uint8_t fdc_status;
 static uint8_t fdc_dma_low;
 static uint8_t fdc_dma_high;
 
+static char *diskImage(uint8_t drive)
+{
+  static char *letters = "abcdefghijklmnop";
+  static char image[20];
+  snprintf(image, sizeof(image), "disks/%c/DISK.IMG", letters[drive]);
+  return image;
+}
+
 static uint8_t rb(void *userdata, uint16_t addr)
 {
   return memory[addr];
@@ -168,6 +176,7 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
     u_int16_t sector = fdc_track * sectors_per_track + fdc_sector - 1;
     u_int16_t offset = sector * 128;
     uint8_t *sector_data = &memory[dma];
+    size_t num_bytes;
 
     fseek(f, offset, SEEK_SET);
 
@@ -175,7 +184,7 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
     {
 
     case 0: // Disk Read
-      size_t num_bytes = fread(sector_data, 128, 1, f);
+      num_bytes = fread(sector_data, 128, 1, f);
       break;
 
       if (num_bytes != 128)
@@ -186,7 +195,7 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
       break;
 
     case 1: // Disk Write
-      size_t num_bytes = fwrite(sector_data, 128, 1, f);
+      num_bytes = fwrite(sector_data, 128, 1, f);
       if (num_bytes != 128)
       {
         printf("Bytes written is %d instead of 128\n", num_bytes);
