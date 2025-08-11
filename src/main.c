@@ -263,5 +263,7 @@ int main()
     z80_step(&cpu);
   }
 
+  printf("CPU halted.\n");
+
   return 0;
 }
