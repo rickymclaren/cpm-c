@@ -28,12 +28,12 @@ static char *diskImage(uint8_t drive)
 
 static uint8_t rb(void *userdata, uint16_t addr)
 {
-  return memory[addr];
+  return ((u_int8_t *) userdata)[addr];
 }
 
 static void wb(void *userdata, uint16_t addr, uint8_t val)
 {
-  memory[addr] = val;
+  ((u_int8_t *) userdata)[addr] = val;
 }
 
 static uint8_t in(z80 *const z, uint8_t port)
@@ -254,6 +254,7 @@ int main()
   cpu.write_byte = wb;
   cpu.port_in = in;
   cpu.port_out = out;
+  cpu.userdata = memory;
 
   load_file("disks/a/DISK.IMG", 0x0000, 0x80);
 
