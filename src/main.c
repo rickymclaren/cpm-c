@@ -52,7 +52,7 @@ static void read_write_sector(int write)
   {
     // Write command
     num_bytes = fwrite(sector_data, 1, SECTOR_SIZE, f);
-    if (num_bytes != 128)
+    if (num_bytes != SECTOR_SIZE)
     {
       printf("Bytes written is %zu instead of %d\n", num_bytes, SECTOR_SIZE);
       exit(1);
@@ -62,7 +62,7 @@ static void read_write_sector(int write)
   {
     // Read command
     num_bytes = fread(sector_data, 1, SECTOR_SIZE, f);
-    if (num_bytes != 128)
+    if (num_bytes != SECTOR_SIZE)
     {
       printf("Bytes read is %zu instead of %d\n", num_bytes, SECTOR_SIZE);
       exit(1);
