@@ -1,6 +1,6 @@
 CC=cc
 CFLAGS=-Iinclude -Wall -Wextra
-SRC=src/main.c, src/z80.c
+SRC=src/main.c src/z80.c
 OBJ=$(SRC:.c=.o)
 EXEC=cpm-c
 
