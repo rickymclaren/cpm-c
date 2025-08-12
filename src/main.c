@@ -7,16 +7,19 @@
 #define MEMORY_SIZE 0x10000
 #define CR 0x0D // Carriage Return
 #define LF 0x0A // Line Feed
+#define READ 0x00
+#define WRITE 0x01
+#define SECTOR_SIZE 128
 
 static uint8_t *memory = NULL;
 
-static uint8_t fdc_drive;
-static uint8_t fdc_track;
-static uint8_t fdc_sector;
-static uint8_t fdc_command;
-static uint8_t fdc_status;
-static uint8_t fdc_dma_low;
-static uint8_t fdc_dma_high;
+static uint8_t fdc_drive = 0;
+static uint8_t fdc_track = 0;
+static uint8_t fdc_sector = 0;
+static uint8_t fdc_command = 0;
+static uint8_t fdc_status = 0;
+static uint8_t fdc_dma_low = 0;
+static uint8_t fdc_dma_high = 0;
 
 static char *diskImage(uint8_t drive)
 {
@@ -24,6 +27,49 @@ static char *diskImage(uint8_t drive)
   static char image[20];
   snprintf(image, sizeof(image), "disks/%c/DISK.IMG", letters[drive]);
   return image;
+}
+
+static void read_write_sector(int write)
+{
+  char *filename = diskImage(fdc_drive);
+  int sectors_per_track = fdc_drive > 3 ? 128 : 26;
+
+  FILE *f = fopen(filename, write ? "wb" : "rb");
+  if (f == NULL)
+  {
+    fprintf(stderr, "error: can't open disk image '%s'.\n", filename);
+    exit(1);
+  }
+
+  u_int16_t dma = (fdc_dma_high << 8) | fdc_dma_low;
+  long sector = (long)fdc_track * sectors_per_track + fdc_sector - 1;
+  long offset = sector * SECTOR_SIZE;
+  uint8_t *sector_data = &memory[dma];
+  size_t num_bytes;
+
+  fseek(f, offset, SEEK_SET);
+  if (write) 
+  {
+    // Write command
+    num_bytes = fwrite(sector_data, 1, SECTOR_SIZE, f);
+    if (num_bytes != 128)
+    {
+      printf("Bytes written is %zu instead of %d\n", num_bytes, SECTOR_SIZE);
+      exit(1);
+    }
+  }
+  else 
+  {
+    // Read command
+    num_bytes = fread(sector_data, 1, SECTOR_SIZE, f);
+    if (num_bytes != 128)
+    {
+      printf("Bytes read is %zu instead of %d\n", num_bytes, SECTOR_SIZE);
+      exit(1);
+    }
+  }
+
+  fclose(f);
 }
 
 static uint8_t rb(void *userdata, uint16_t addr)
@@ -160,45 +206,14 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
 
   case 0x0d:
     fdc_command = val;
-    int sectors_per_track = fdc_drive > 3 ? 128 : 26;
-
-    char *image = diskImage(fdc_drive);
-    char *mode = val == 0 ? "rb" : "wb";
-    FILE *f = fopen(image, mode);
-    if (f == NULL)
+    if (val == 0x00 || val == 0x01) // Read or Write command
     {
-      fprintf(stderr, "error: can't open disk image '%s'.\n", image);
-      exit(1);
+      read_write_sector(val == 0x01 ? WRITE : READ);
     }
-
-    u_int16_t dma = (fdc_dma_high << 8) | fdc_dma_low;
-    long sector = (long)fdc_track * sectors_per_track + fdc_sector - 1;
-    long offset = sector * 128;
-    uint8_t *sector_data = &memory[dma];
-    size_t num_bytes;
-
-    fseek(f, offset, SEEK_SET);
-
-    if (val == 0) // Read command
+    else
     {
-      num_bytes = fread(sector_data, 1, 128, f);
-      if (num_bytes != 128)
-      {
-        printf("Bytes read is %zu instead of 128\n", num_bytes);
-        exit(1);
-      }
+      printf("FDC command 0x%02X not implemented.\n", val);
     }
-    else if (val == 1) // Write command
-    {
-      num_bytes = fwrite(sector_data, 1, 128, f);
-      if (num_bytes != 128)
-      {
-        printf("Bytes written is %zu instead of 128\n", num_bytes);
-        exit(1);
-      }
-    }
-
-    fclose(f);
     break;
 
   case 0x0e:
@@ -219,31 +234,8 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
   }
 }
 
-static int load_file(const char *filename, uint16_t addr, uint16_t size)
-{
-  FILE *f = fopen(filename, "rb");
-  if (f == NULL)
-  {
-    fprintf(stderr, "error: can't open file '%s'.\n", filename);
-    return 1;
-  }
-
-  // copying the bytes in memory:
-  size_t result = fread(&memory[addr], sizeof(uint8_t), size, f);
-  if (result != size)
-  {
-    fprintf(stderr, "error: while reading file '%s'\n", filename);
-    return 1;
-  }
-
-  fclose(f);
-  return 0;
-}
-
 int main()
 {
-  // printf("Starting!\n");
-
   memory = calloc(MEMORY_SIZE, 1);
   if (memory == NULL)
   {
@@ -258,7 +250,8 @@ int main()
   cpu.port_out = out;
   cpu.userdata = memory;
 
-  load_file("disks/a/DISK.IMG", 0x0000, 0x80);
+  // load boot sector
+  read_write_sector(READ);
 
   while (!cpu.halted)
   {
