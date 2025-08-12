@@ -28,23 +28,24 @@ static char *diskImage(uint8_t drive)
 
 static uint8_t rb(void *userdata, uint16_t addr)
 {
-  return ((u_int8_t *) userdata)[addr];
+  return ((u_int8_t *)userdata)[addr];
 }
 
 static void wb(void *userdata, uint16_t addr, uint8_t val)
 {
-  ((u_int8_t *) userdata)[addr] = val;
+  ((u_int8_t *)userdata)[addr] = val;
 }
 
 static uint8_t in(z80 *const z, uint8_t port)
 {
   uint8_t value = 0xFF; // Default value if no case matches
+  struct pollfd fds[1];
+  int timeout_ms = 0; // Immediate check (non-blocking)
 
+  (void)z; // Unused parameter
   switch (port)
   {
   case 0: // Console status
-    struct pollfd fds[1];
-    int timeout_ms = 0; // Immediate check (non-blocking)
 
     fds[0].fd = STDIN_FILENO;
     fds[0].events = POLLIN; // Check for readable data
@@ -126,6 +127,7 @@ static uint8_t in(z80 *const z, uint8_t port)
 
 static void out(z80 *const z, uint8_t port, uint8_t val)
 {
+  (void)z; // Unused parameter
   switch (port)
   {
   case 0: // Console input status - not implemented
@@ -170,7 +172,7 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
     }
 
     u_int16_t dma = (fdc_dma_high << 8) | fdc_dma_low;
-    long sector = (long) fdc_track * sectors_per_track + fdc_sector - 1;
+    long sector = (long)fdc_track * sectors_per_track + fdc_sector - 1;
     long offset = sector * 128;
     uint8_t *sector_data = &memory[dma];
     size_t num_bytes;
