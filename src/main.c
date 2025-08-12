@@ -83,7 +83,7 @@ static uint8_t in(z80 *const z, uint8_t port)
     value = 0;
     break;
 
-  case 5: // Printer data
+  case 5: // AUX data
     printf("AUX data requested, but not implemented.\n");
     value = 0;
     break;
@@ -170,8 +170,8 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
     }
 
     u_int16_t dma = (fdc_dma_high << 8) | fdc_dma_low;
-    u_int16_t sector = fdc_track * sectors_per_track + fdc_sector - 1;
-    u_int16_t offset = sector * 128;
+    long sector = (long) fdc_track * sectors_per_track + fdc_sector - 1;
+    long offset = sector * 128;
     uint8_t *sector_data = &memory[dma];
     size_t num_bytes;
 
