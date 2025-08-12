@@ -4,7 +4,7 @@
 This project is an implementation of a CPM machine.
 
 It uses <https://github.com/superzazu/z80.git> for a Z80 emulator. 
-Get this project and make it, then copy z80.h and z80.o into the src directory.
+It has a local copy of z80.c and z80.h from that project.
 
 ## Build Instructions
 To build the project, navigate to the project directory and run the following command:
