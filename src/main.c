@@ -21,20 +21,14 @@ static uint8_t fdc_status = 0;
 static uint8_t fdc_dma_low = 0;
 static uint8_t fdc_dma_high = 0;
 
-static char *diskImage(uint8_t drive)
+static void disk_access()
 {
   static char *letters = "abcdefghijklmnop";
-  static char image[20];
-  snprintf(image, sizeof(image), "disks/%c/DISK.IMG", letters[drive]);
-  return image;
-}
-
-static void read_write_sector(int write)
-{
-  char *filename = diskImage(fdc_drive);
+  static char filename[20];
+  snprintf(filename, sizeof(filename), "disks/%c/DISK.IMG", letters[fdc_drive]);
   int sectors_per_track = fdc_drive > 3 ? 128 : 26;
 
-  FILE *f = fopen(filename, write ? "wb" : "rb");
+  FILE *f = fopen(filename, fdc_command == WRITE ? "wb" : "rb");
   if (f == NULL)
   {
     fprintf(stderr, "error: can't open disk image '%s'.\n", filename);
@@ -48,9 +42,8 @@ static void read_write_sector(int write)
   size_t num_bytes;
 
   fseek(f, offset, SEEK_SET);
-  if (write) 
+  if (fdc_command == WRITE) 
   {
-    // Write command
     num_bytes = fwrite(sector_data, 1, SECTOR_SIZE, f);
     if (num_bytes != SECTOR_SIZE)
     {
@@ -60,7 +53,6 @@ static void read_write_sector(int write)
   }
   else 
   {
-    // Read command
     num_bytes = fread(sector_data, 1, SECTOR_SIZE, f);
     if (num_bytes != SECTOR_SIZE)
     {
@@ -206,14 +198,7 @@ static void out(z80 *const z, uint8_t port, uint8_t val)
 
   case 0x0d:
     fdc_command = val;
-    if (val == 0x00 || val == 0x01) // Read or Write command
-    {
-      read_write_sector(val == 0x01 ? WRITE : READ);
-    }
-    else
-    {
-      printf("FDC command 0x%02X not implemented.\n", val);
-    }
+    disk_access();
     break;
 
   case 0x0e:
@@ -251,7 +236,7 @@ int main()
   cpu.userdata = memory;
 
   // load boot sector
-  read_write_sector(READ);
+  disk_access();
 
   while (!cpu.halted)
   {
